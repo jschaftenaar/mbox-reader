@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  mbox-reader:
+    build: .
+    ports:
+      - "${PORT:-8080}:5000"
+    volumes:
+      - "./data:/data"
+    environment:
+      - MBOX_PATH=${MBOX_FILE:-/data/emails.mbox}
+      - DATA_DIR=${DATA_DIR:-/data}
+      - PORT=5000
+    restart: unless-stopped
+
+# Made with Bob

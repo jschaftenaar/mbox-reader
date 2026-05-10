@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mbox Email Reader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .search-bar input {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .search-bar button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .search-bar button:hover {
+            background: #2980b9;
+        }
+        
+        .search-bar button.clear {
+            background: #95a5a6;
+        }
+        
+        .search-bar button.clear:hover {
+            background: #7f8c8d;
+        }
+        
+        .search-bar button.rebuild {
+            background: #e67e22;
+        }
+        
+        .search-bar button.rebuild:hover {
+            background: #d35400;
+        }
+        
+        .stats {
+            font-size: 13px;
+            color: #ecf0f1;
+            margin-top: 8px;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* Label sidebar */
+        .label-sidebar {
+            width: 200px;
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .sidebar-header {
+            padding: 15px;
+            background: #34495e;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .labels {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .label-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .label-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .label-item.selected {
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+            font-weight: 600;
+        }
+        
+        .label-name {
+            font-size: 13px;
+            color: #2c3e50;
+        }
+        
+        .label-count {
+            font-size: 11px;
+            color: #999;
+            background: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        
+        .label-item.selected .label-count {
+            background: #2196f3;
+            color: white;
+        }
+        
+        /* Email list */
+        .email-list {
+            width: 400px;
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .list-header {
+            padding: 15px;
+            background: #ecf0f1;
+            border-bottom: 1px solid #ddd;
+            font-size: 13px;
+            color: #555;
+        }
+        
+        .emails {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .email-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .email-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .email-item.selected {
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+        
+        .email-from {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+        
+        .email-subject {
+            color: #555;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+        
+        .email-date {
+            color: #999;
+            font-size: 12px;
+        }
+        
+        .email-snippet {
+            color: #666;
+            font-size: 12px;
+            margin-top: 6px;
+            font-style: italic;
+        }
+        
+        .email-snippet mark {
+            background: #fff59d;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        
+        .pagination {
+            padding: 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        
+        .pagination-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .pagination button {
+            padding: 6px 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #2980b9;
+        }
+        
+        .pagination button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        /* Email content */
+        .email-content {
+            flex: 1;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .content-header {
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            background: #fafafa;
+        }
+        
+        .content-subject {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .content-meta {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .content-meta strong {
+            color: #2c3e50;
+            display: inline-block;
+            width: 60px;
+        }
+        
+        .content-labels {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .content-labels strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .content-attachments {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .content-attachments strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .attachment-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .attachment-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .attachment-icon {
+            font-size: 24px;
+        }
+        
+        .attachment-info {
+            flex: 1;
+        }
+        
+        .attachment-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 13px;
+        }
+        
+        .attachment-size {
+            color: #999;
+            font-size: 12px;
+        }
+        
+        .attachment-download {
+            padding: 6px 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .attachment-download:hover {
+            background: #2980b9;
+        }
+        
+        .attachment-view {
+            padding: 6px 12px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: none;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        .attachment-view:hover {
+            background: #229954;
+        }
+        
+        /* Image preview modal */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+        
+        .image-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .image-modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        
+        .image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .image-modal-close:hover {
+            color: #ccc;
+        }
+        
+        .image-modal-caption {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 16px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 4px;
+        }
+        
+        .email-labels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        
+        .label-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .label-badge.inbox {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .label-badge.sent {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        
+        .label-badge.draft {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+        
+        .label-badge.starred {
+            background: #fff9c4;
+            color: #f57f17;
+        }
+        
+        .label-badge.important {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .label-badge.trash {
+            background: #f5f5f5;
+            color: #616161;
+        }
+        
+        .content-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .progress-bar {
+            width: 300px;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            transition: width 0.3s;
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            font-size: 16px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .rebuild-notice {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .rebuild-notice button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #e67e22;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .rebuild-notice button:hover {
+            background: #d35400;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📧 Mbox Email Reader</h1>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search emails (from, to, subject, body)..." />
+            <button onclick="performSearch()">Search</button>
+            <button class="clear" onclick="clearSearch()">Clear</button>
+            <button class="rebuild" onclick="rebuildIndex()">Rebuild Index</button>
+        </div>
+        <div class="stats" id="stats">Loading...</div>
+    </div>
+    
+    <div class="container">
+        <!-- Label Sidebar -->
+        <div class="label-sidebar">
+            <div class="sidebar-header">Labels</div>
+            <div class="labels" id="labelList">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div>Loading labels...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Email List -->
+        <div class="email-list">
+            <div class="list-header" id="listHeader">
+                Loading emails...
+            </div>
+            <div class="emails" id="emailList">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div id="loadingMessage">Loading emails...</div>
+                    <div class="progress-bar" id="progressBar" style="display: none;">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div id="progressText"></div>
+                </div>
+            </div>
+            <div class="pagination" id="pagination" style="display: none;">
+                <div id="paginationInfo">Page 1 of 1</div>
+                <div class="pagination-buttons">
+                    <button onclick="previousPage()" id="prevBtn">Previous</button>
+                    <button onclick="nextPage()" id="nextBtn">Next</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Email Content -->
+        <div class="email-content">
+            <div class="empty-state" id="emptyState">
+                Select an email to view its content
+            </div>
+            <div id="emailContent" style="display: none; height: 100%; display: flex; flex-direction: column;">
+                <div class="content-header">
+                    <div class="content-subject" id="contentSubject"></div>
+                    <div class="content-meta">
+                        <div><strong>From:</strong> <span id="contentFrom"></span></div>
+                        <div><strong>To:</strong> <span id="contentTo"></span></div>
+                        <div><strong>Date:</strong> <span id="contentDate"></span></div>
+                    </div>
+                </div>
+                <div class="content-body" id="contentBody"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPage = 1;
+        let currentQuery = '';
+        let currentLabel = null;
+        let selectedEmailId = null;
+        
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                if (data.total_emails) {
+                    document.getElementById('stats').textContent = 
+                        `Total: ${data.total_emails.toLocaleString()} emails`;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        // Load labels
+        async function loadLabels() {
+            try {
+                const response = await fetch('/api/labels');
+                const data = await response.json();
+                
+                if (data.loading) {
+                    setTimeout(loadLabels, 2000);
+                    return;
+                }
+                
+                if (data.error) {
+                    document.getElementById('labelList').innerHTML = 
+                        `<div class="error">Error loading labels</div>`;
+                    return;
+                }
+                
+                const labelList = document.getElementById('labelList');
+                
+                // Add "All Emails" option
+                let html = `
+                    <div class="label-item ${currentLabel === null ? 'selected' : ''}" onclick="selectLabel(null)">
+                        <span class="label-name">All Emails</span>
+                    </div>
+                `;
+                
+                // Add each label
+                data.labels.forEach(label => {
+                    const isSelected = currentLabel === label.name;
+                    html += `
+                        <div class="label-item ${isSelected ? 'selected' : ''}" onclick="selectLabel('${escapeHtml(label.name)}')">
+                            <span class="label-name">${escapeHtml(label.name)}</span>
+                            <span class="label-count">${label.count}</span>
+                        </div>
+                    `;
+                });
+                
+                labelList.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading labels:', error);
+            }
+        }
+        
+        // Select a label
+        function selectLabel(label) {
+            currentLabel = label;
+            currentPage = 1;
+            loadLabels(); // Refresh to update selected state
+            loadEmails(1);
+        }
+        
+        // Load emails with pagination
+        async function loadEmails(page = 1) {
+            currentPage = page;
+            const emailList = document.getElementById('emailList');
+            const pagination = document.getElementById('pagination');
+            
+            try {
+                let url;
+                if (currentQuery) {
+                    url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${page}&per_page=50`;
+                } else if (currentLabel) {
+                    url = `/api/emails?page=${page}&per_page=50&label=${encodeURIComponent(currentLabel)}`;
+                } else {
+                    url = `/api/emails?page=${page}&per_page=50`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.loading) {
+                    showLoading(data.progress);
+                    setTimeout(() => loadEmails(page), 2000);
+                    return;
+                }
+                
+                if (data.error) {
+                    if (data.needs_rebuild) {
+                        emailList.innerHTML = `
+                            <div class="rebuild-notice">
+                                <strong>Search Index Not Available</strong><br>
+                                ${data.error}<br>
+                                <button onclick="rebuildIndex()">Rebuild Index Now</button>
+                            </div>
+                        `;
+                    } else {
+                        emailList.innerHTML = `<div class="error">${data.error}</div>`;
+                    }
+                    return;
+                }
+                
+                // Update list header
+                const listHeader = document.getElementById('listHeader');
+                if (currentQuery) {
+                    listHeader.textContent = `Search results for "${currentQuery}"`;
+                } else if (currentLabel) {
+                    listHeader.textContent = `${currentLabel} (${data.pagination.total.toLocaleString()} emails)`;
+                } else {
+                    listHeader.textContent = `All Emails (${data.pagination.total.toLocaleString()})`;
+                }
+                
+                // Render emails
+                emailList.innerHTML = data.emails.map(email => `
+                    <div class="email-item" onclick="selectEmail(${email.id})">
+                        <div class="email-from">${escapeHtml(email.from)}</div>
+                        <div class="email-subject">${escapeHtml(email.subject)}</div>
+                        <div class="email-date">${escapeHtml(email.date)}</div>
+                        ${email.snippet ? `<div class="email-snippet">${email.snippet}</div>` : ''}
+                    </div>
+                `).join('');
+                
+                // Update pagination
+                updatePagination(data.pagination);
+                pagination.style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Error loading emails:', error);
+                emailList.innerHTML = `<div class="error">Error loading emails: ${error.message}</div>`;
+            }
+        }
+        
+        function showLoading(progress) {
+            const emailList = document.getElementById('emailList');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            loadingMessage.textContent = progress.message || 'Loading...';
+            
+            if (progress.total > 0) {
+                progressBar.style.display = 'block';
+                const percent = (progress.current / progress.total) * 100;
+                progressFill.style.width = percent + '%';
+                progressText.textContent = `${progress.current.toLocaleString()} / ${progress.total.toLocaleString()} emails`;
+            }
+        }
+        
+        function updatePagination(pagination) {
+            document.getElementById('paginationInfo').textContent = 
+                `Page ${pagination.page} of ${pagination.total_pages} (${pagination.total.toLocaleString()} total)`;
+            document.getElementById('prevBtn').disabled = !pagination.has_prev;
+            document.getElementById('nextBtn').disabled = !pagination.has_next;
+        }
+        
+        function previousPage() {
+            if (currentPage > 1) {
+                loadEmails(currentPage - 1);
+            }
+        }
+        
+        function nextPage() {
+            loadEmails(currentPage + 1);
+        }
+        
+        async function selectEmail(id) {
+            selectedEmailId = id;
+            
+            // Update selected state
+            document.querySelectorAll('.email-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.closest('.email-item').classList.add('selected');
+            
+            try {
+                const response = await fetch(`/api/email/${id}`);
+                const email = await response.json();
+                
+                if (email.error) {
+                    alert('Error loading email: ' + email.error);
+                    return;
+                }
+                
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('emailContent').style.display = 'flex';
+                document.getElementById('contentSubject').textContent = email.subject;
+                document.getElementById('contentFrom').textContent = email.from;
+                document.getElementById('contentTo').textContent = email.to;
+                document.getElementById('contentDate').textContent = email.date;
+                
+                // Add labels if present
+                const contentHeader = document.querySelector('.content-header');
+                let labelsDiv = contentHeader.querySelector('.content-labels');
+                if (email.labels) {
+                    if (!labelsDiv) {
+                        labelsDiv = document.createElement('div');
+                        labelsDiv.className = 'content-labels';
+                        contentHeader.appendChild(labelsDiv);
+                    }
+                    labelsDiv.innerHTML = '<strong>Labels:</strong><div class="email-labels">' + 
+                        renderLabels(email.labels) + '</div>';
+                } else if (labelsDiv) {
+                    labelsDiv.remove();
+                }
+                
+                // Add attachments if present
+                let attachmentsDiv = contentHeader.querySelector('.content-attachments');
+                if (email.attachments && email.attachments.length > 0) {
+                    if (!attachmentsDiv) {
+                        attachmentsDiv = document.createElement('div');
+                        attachmentsDiv.className = 'content-attachments';
+                        contentHeader.appendChild(attachmentsDiv);
+                    }
+                    const isImage = (contentType) => {
+                        return contentType && contentType.startsWith('image/');
+                    };
+                    
+                    attachmentsDiv.innerHTML = '<strong>Attachments (' + email.attachments.length + '):</strong>' +
+                        '<div class="attachment-list">' +
+                        email.attachments.map(att => `
+                            <div class="attachment-item">
+                                <div class="attachment-icon">${isImage(att.content_type) ? '🖼️' : '�'}</div>
+                                <div class="attachment-info">
+                                    <div class="attachment-name">${escapeHtml(att.filename)}</div>
+                                    <div class="attachment-size">${formatFileSize(att.size)}</div>
+                                </div>
+                                <div>
+                                    ${isImage(att.content_type) ?
+                                        `<button class="attachment-view" onclick="viewImage(${att.id}, \`${att.filename.replace(/`/g, '\\`')}\`)">View</button>` :
+                                        ''}
+                                    <a href="/api/attachment/${att.id}/download"
+                                       class="attachment-download"
+                                       download="${escapeHtml(att.filename)}">
+                                        Download
+                                    </a>
+                                </div>
+                            </div>
+                        `).join('') +
+                        '</div>';
+                } else if (attachmentsDiv) {
+                    attachmentsDiv.remove();
+                }
+                
+                // Render email body (HTML or plain text)
+                const bodyDiv = document.getElementById('contentBody');
+                if (email.is_html) {
+                    bodyDiv.className = 'content-body html-content';
+                    bodyDiv.innerHTML = email.body;
+                } else {
+                    bodyDiv.className = 'content-body plain-text';
+                    bodyDiv.textContent = email.body;
+                }
+                
+            } catch (error) {
+                console.error('Error loading email:', error);
+                alert('Error loading email: ' + error.message);
+            }
+        }
+        
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+            currentQuery = query;
+            currentLabel = null;
+            loadLabels(); // Refresh label selection
+            loadEmails(1);
+        }
+        
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            currentQuery = '';
+            loadEmails(1);
+        }
+        
+        async function rebuildIndex() {
+            if (!confirm('This will delete the current database and rebuild it from the mbox file. This may take 30-60 minutes for large files. Continue?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/rebuild');
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                alert(data.message);
+                
+                // Start polling for progress
+                setTimeout(() => {
+                    loadLabels();
+                    loadEmails(1);
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error rebuilding index:', error);
+                alert('Error rebuilding index: ' + error.message);
+            }
+        }
+        
+        function renderLabels(labelsStr) {
+            if (!labelsStr) return '';
+            
+            const labels = labelsStr.split(',').map(l => l.trim()).filter(l => l);
+            return labels.map(label => {
+                const labelLower = label.toLowerCase();
+                let className = 'label-badge';
+                
+                if (labelLower === 'inbox') className += ' inbox';
+                else if (labelLower === 'sent') className += ' sent';
+                else if (labelLower === 'draft' || labelLower === 'drafts') className += ' draft';
+                else if (labelLower === 'starred') className += ' starred';
+                else if (labelLower === 'important') className += ' important';
+                else if (labelLower === 'trash') className += ' trash';
+                
+                return `<span class="${className}">${escapeHtml(label)}</span>`;
+            }).join('');
+        }
+        
+        function viewImage(attachmentId, filename) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            const caption = document.getElementById('modalCaption');
+            
+            modal.classList.add('active');
+            modalImg.src = `/api/attachment/${attachmentId}/download`;
+            caption.textContent = filename;
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.remove('active');
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeImageModal();
+            }
+        });
+        
+        // Handle Enter key in search
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        
+        // Initial load
+        loadStats();
+        loadLabels();
+        loadEmails(1);
+    </script>
+    
+    <!-- Image preview modal -->
+    <div class="image-modal" id="imageModal" onclick="closeImageModal()">
+        <span class="image-modal-close">&times;</span>
+        <img class="image-modal-content" id="modalImage">
+        <div class="image-modal-caption" id="modalCaption"></div>
+    </div>
+</body>
+</html>
