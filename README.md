@@ -40,7 +40,7 @@ A self-hosted, searchable email archive viewer for Gmail Takeout mbox files. Bro
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/mbox-reader.git
+   git clone https://github.com/jschaftenaar/mbox-reader.git
    cd mbox-reader
    ```
 
@@ -240,8 +240,8 @@ Contributions welcome! Please:
 
 ## 💬 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/mbox-reader/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/mbox-reader/discussions)
+- **Issues**: [GitHub Issues](https://github.com/jschaftenaar/mbox-reader/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/jschaftenaar/mbox-reader/discussions)
 
 ## 🙏 Acknowledgments
 
